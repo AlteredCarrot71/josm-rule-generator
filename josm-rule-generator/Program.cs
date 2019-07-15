@@ -50,13 +50,12 @@ namespace josm_rule_generator
                 stopWatch.Reset();
                 stopWatch.Start();
 
-                //sql = "DELETE FROM wiki_pages";
-                //command = new SQLiteCommand(sql, sqlConn);
-                //command.ExecuteNonQuery();
+                sql = "DELETE FROM wiki_pages";
+                command = new SQLiteCommand(sql, sqlConn);
+                command.ExecuteNonQuery();
 
-                //tömb a letöltendőkről
-                //WriteCategoryToDb("Category:Key descriptions", "Key:", "{{KeyDescription");
-                //WriteCategoryToDb("Category:Tag descriptions", "Tag:", "{{ValueDescription");
+                WriteCategoryToDb("Category:Key descriptions", "Key:", "{{KeyDescription");
+                WriteCategoryToDb("Category:Tag descriptions", "Tag:", "{{ValueDescription");
 
                 GenerateValidatorFile();
 
