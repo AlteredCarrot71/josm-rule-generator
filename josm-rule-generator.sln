@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.757
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30804.86
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "josm-rule-generator", "josm-rule-generator\josm-rule-generator.csproj", "{B04D3EE4-1EB7-449D-B695-E8CE0259D7BA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "josm-rule-generator", "josm-rule-generator\josm-rule-generator.csproj", "{CDBBC2CA-2FF0-400A-B132-91ACA883E971}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,15 +11,15 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{B04D3EE4-1EB7-449D-B695-E8CE0259D7BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B04D3EE4-1EB7-449D-B695-E8CE0259D7BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B04D3EE4-1EB7-449D-B695-E8CE0259D7BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B04D3EE4-1EB7-449D-B695-E8CE0259D7BA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CDBBC2CA-2FF0-400A-B132-91ACA883E971}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CDBBC2CA-2FF0-400A-B132-91ACA883E971}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CDBBC2CA-2FF0-400A-B132-91ACA883E971}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CDBBC2CA-2FF0-400A-B132-91ACA883E971}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {B3B5CBF2-A51C-4134-920B-405375BF48A5}
+		SolutionGuid = {789A6724-2358-486A-86B4-703954232336}
 	EndGlobalSection
 EndGlobal

@@ -1,11 +1,12 @@
-﻿using LinqToWiki.Generated;
+﻿using RestSharp;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Diagnostics;
 using System.Data.SQLite;
+using System.IO;
+using System.Linq;
+using System.Xml.Linq;
 
 namespace josm_rule_generator
 {
@@ -24,6 +25,9 @@ namespace josm_rule_generator
         public string _parameters;
 
         public List<String> parameters;
+
+        public List<string> title_list = new List<string>();
+        public List<Page> pages = new List<Page>();
 
         public string key;
         public string value;
@@ -98,96 +102,170 @@ namespace josm_rule_generator
 
         public void WriteCategoryToDb(string CategoryLabel, string LabelPrefix, string ValuePrefix)
         {
-            var wiki = new Wiki("JOSM-rule-generator/1.0", "https://wiki.openstreetmap.org", "/w/api.php");
-            var title_list = (from cm in wiki.Query.categorymembers()
-                              where cm.title == CategoryLabel
-                              select cm.title)
-                .ToList();
+            try
+            {
+                stopWatch.Reset();
+                stopWatch.Start();
 
-            var titles = wiki.CreateTitlesSource(title_list.FindAll(f => f.Contains(LabelPrefix)));
+                GetCategoryContents(CategoryLabel);
 
-            var pages = titles.Select(
-                                        page => new
-                                        {
-                                            Title = page.info.title.ToString(),
-                                            Text = page.revisions()
-                                                        .Where(r => r.section == "0")
-                                                        .Select(r => new { r.revid, r.value })
-                                                        .ToList(),
-                                            LastRevId = page.info.lastrevid
-                                        })
-                              .ToList();
+                stopWatch.Stop();
+
+                Console.Write("Categories gathered, ");
+                Console.WriteLine("elapsed {0} milliseconds.", stopWatch.ElapsedMilliseconds);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Error gathering categories: " + "\n" + e.Message + "\n" + e.StackTrace);
+            }
+
+            try
+            {
+                stopWatch.Reset();
+                stopWatch.Start();
+
+                foreach (string title in title_list.FindAll(f => f.Contains(LabelPrefix)))
+                    GetPageContent(title);
+
+                stopWatch.Stop();
+
+                Console.Write("Page sources gathered, ");
+                Console.WriteLine("elapsed {0} milliseconds.", stopWatch.ElapsedMilliseconds);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Error gathering page sources: " + "\n" + e.Message + "\n" + e.StackTrace);
+            }
 
             transaction = sqlConn.BeginTransaction();
 
-            foreach (var single_page in pages)
+            foreach (Page single_page in pages)
             {
-                foreach (var text_line in single_page.Text.FindAll(f => f.revid == single_page.LastRevId))
+                // Getting wiki text, with some bugfix
+                wiki_desc = single_page.value.ToString().Replace(@"""", "'").Replace("<nowiki>{yes", "<nowiki>[yes");
+
+                if (wiki_desc.IndexOf(ValuePrefix) >= 0)
                 {
-                    // Getting wiki text, with some bugfix
-                    wiki_desc = text_line.value.ToString().Replace(@"""", "'").Replace("<nowiki>{yes", "<nowiki>[yes");
+                    start_pos = wiki_desc.IndexOf(ValuePrefix) + ValuePrefix.Length;
+                    close_pos = ClosingBracket(wiki_desc, '{', '}', wiki_desc.IndexOf(ValuePrefix));
 
-                    if (wiki_desc.IndexOf(ValuePrefix) >= 0)
+                    //for debug
+                    //Console.WriteLine(wiki_desc);
+                    //Console.WriteLine(start_pos.ToString() + ", " + close_pos.ToString());
+
+                    _parameters = wiki_desc.Substring(start_pos, close_pos - start_pos + 1);
+                    start_pos = _parameters.IndexOf('|');
+                    parameters = _parameters.Substring(start_pos + 1).Split('|').ToList();
+
+                    sql_col_list = "INSERT INTO wiki_pages (title, text";
+                    sql_values = "values(\"" + single_page.title.ToString().Replace(' ', '_') + "\", \"" + wiki_desc + "\"";
+
+                    foreach (var param in parameters)
                     {
-                        start_pos = wiki_desc.IndexOf(ValuePrefix) + ValuePrefix.Length;
-                        close_pos = ClosingBracket(wiki_desc, '{', '}', wiki_desc.IndexOf(ValuePrefix));
-
-                        //for debug
-                        //Console.WriteLine(wiki_desc);
-                        //Console.WriteLine(start_pos.ToString() + ", " + close_pos.ToString());
-
-                        _parameters = wiki_desc.Substring(start_pos, close_pos - start_pos + 1);
-                        start_pos = _parameters.IndexOf('|');
-                        parameters = _parameters.Substring(start_pos + 1).Split('|').ToList();
-
-                        sql_col_list = "INSERT INTO wiki_pages (title, text";
-                        sql_values = "values(\"" + single_page.Title.ToString().Replace(' ', '_') + "\", \"" + wiki_desc + "\"";
-
-                        foreach (var param in parameters)
+                        if (param.IndexOf('=') > 0)
                         {
-                            if (param.IndexOf('=') > 0)
+                            key = param.Substring(0, param.IndexOf('=')).Trim().ToLower();
+                            value = param.Substring(param.IndexOf('=') + 1).Trim().ToLower();
+
+                            // Value cleaning
+                            value = value.Replace("}}", null).Replace("?", null);
+                            if (value.IndexOf('<') >= 0)
+                                value = value.Substring(0, value.IndexOf('<'));
+                            if (value.IndexOf((char)13) >= 0)
+                                value = value.Substring(0, value.IndexOf((char)13));
+                            if (value.IndexOf((char)10) >= 0)
+                                value = value.Substring(0, value.IndexOf((char)10));
+                            if (key == "status")
+                                value = value.Replace(" ", null);
+                            value = value.Trim();
+
+                            if (key == "onnode" || key == "onway" || key == "onarea" || key == "onrelation" || key == "status")
                             {
-                                key = param.Substring(0, param.IndexOf('=')).Trim().ToLower();
-                                value = param.Substring(param.IndexOf('=') + 1).Trim().ToLower();
-
-                                // Value cleaning
-                                value = value.Replace("}}", null).Replace("?", null);
-                                if (value.IndexOf('<') >= 0)
-                                    value = value.Substring(0, value.IndexOf('<'));
-                                if (value.IndexOf((char)13) >= 0)
-                                    value = value.Substring(0, value.IndexOf((char)13));
-                                if (value.IndexOf((char)10) >= 0)
-                                    value = value.Substring(0, value.IndexOf((char)10));
-                                if (key == "status")
-                                    value = value.Replace(" ", null);
-                                value = value.Trim();
-
-                                if (key == "onnode" || key == "onway" || key == "onarea" || key == "onrelation" || key == "status")
-                                {
-                                    sql_col_list += ", " + key;
-                                    if (value.Length == 0)
-                                        sql_values += ", NULL";
-                                    else
-                                        sql_values += ", \"" + value + "\"";
-                                }
+                                sql_col_list += ", " + key;
+                                if (value.Length == 0)
+                                    sql_values += ", NULL";
+                                else
+                                    sql_values += ", \"" + value + "\"";
                             }
                         }
-
-                        sql_col_list += ") ";
-                        sql_values += ")";
-
-                        sql = sql_col_list + sql_values;
-
-                        //for debug
-                        //Console.WriteLine(sql);
-
-                        command = new SQLiteCommand(sql, sqlConn);
-                        command.ExecuteNonQuery();
                     }
+
+                    sql_col_list += ") ";
+                    sql_values += ")";
+
+                    sql = sql_col_list + sql_values;
+
+                    //for debug
+                    //Console.WriteLine(sql);
+
+                    command = new SQLiteCommand(sql, sqlConn);
+                    command.ExecuteNonQuery();
                 }
             }
 
             transaction.Commit();
+        }
+
+        public void GetCategoryContents(string CategoryLabel)
+        {
+            RestClient _client = new RestClient();
+
+            _client.BaseUrl = new Uri("https://wiki.openstreetmap.org/w/");
+
+            RestRequest request = new RestRequest("api.php", Method.GET);
+
+            request.AddParameter("action", "query");
+            request.AddParameter("format", "xml");
+            request.AddParameter("list", "categorymembers");
+            request.AddParameter("cmtitle", CategoryLabel);
+            request.AddParameter("cmprop", "ids|title|type");
+            request.AddParameter("cmtype", "subcat|file|page");
+            request.AddParameter("cmlimit", "max");
+
+            IRestResponse _response = _client.Execute(request);
+
+            TextReader tr = new StringReader(_response.Content);
+            XDocument _xDoc = XDocument.Load(tr);
+
+            foreach (XElement element in _xDoc.Descendants())
+            {
+                if (element.Attribute("type") != null && element.Attribute("title") != null)
+                    if (element.Attribute("type").Value == "page")
+                        if (!(title_list.Contains(element.Attribute("title").Value)))
+                            title_list.Add(element.Attribute("title").Value);
+                if (element.Attribute("type") != null && element.Attribute("title") != null)
+                    if (element.Attribute("type").Value == "subcat")
+                        GetCategoryContents(element.Attribute("title").Value);
+            }
+
+            _client.ClearHandlers();
+        }
+
+        public void GetPageContent(string Title)
+        {
+            RestClient _client = new RestClient();
+
+            _client.BaseUrl = new Uri("https://wiki.openstreetmap.org/w/");
+
+            RestRequest request = new RestRequest("api.php", Method.GET);
+
+            request.AddParameter("action", "query");
+            request.AddParameter("format", "xml");
+            request.AddParameter("prop", "revisions");
+            request.AddParameter("titles", Title);
+            request.AddParameter("rvprop", "content");
+            request.AddParameter("rvslots", "*");
+
+            IRestResponse _response = _client.Execute(request);
+
+            TextReader tr = new StringReader(_response.Content);
+            XDocument _xDoc = XDocument.Load(tr);
+
+            foreach (XElement element in _xDoc.Descendants())
+                if (element.Name.LocalName == "slot")
+                    pages.Add(new Page { title = Title, value = element.Value });
+
+            _client.ClearHandlers();
         }
 
         public void GenerateValidatorFile()
