@@ -10,10 +10,10 @@ namespace deprecated_tags
 {
     class Program
     {
-        public Stopwatch stopWatch = new Stopwatch();
+        public Stopwatch stopWatch = new();
 
-        public List<Page> pages = new List<Page>();
-        public List<PageData> pagedatas = new List<PageData>();
+        public List<Page> pages = new();
+        public List<PageData> pagedatas = new();
 
         public int start_pos;
         public int close_pos;
@@ -26,9 +26,9 @@ namespace deprecated_tags
         public string key;
         public string value;
 
-        public List<string> deprecatedStatus = new List<string>() { "deprecated", "obsolete", "abandoned", "rejected", "discardable" };
+        public List<string> deprecatedStatus = new() { "deprecated", "obsolete", "abandoned", "rejected", "discardable" };
 
-        static void Main(string[] args)
+        static void Main()
         {
             var instance = new Program();
 
@@ -38,43 +38,43 @@ namespace deprecated_tags
         public void GenerateValidatorFile()
         {
             // Load XML data
-            XmlSerializer serializer = new XmlSerializer(typeof(List<Page>));
-            FileStream fs = new FileStream("pages.xml", FileMode.Open);
+            XmlSerializer serializer = new(typeof(List<Page>));
+            FileStream fs = new("pages.xml", FileMode.Open);
             pages = (List<Page>)serializer.Deserialize(fs);
 
             foreach (Page single_page in pages)
             {
-                PageData _pageData = new PageData();
+                PageData _pageData = new();
 
                 // Getting wiki text, with some bugfix
-                wiki_desc = single_page.value.ToString().Replace(@"""", "'").Replace("<nowiki>{yes", "<nowiki>[yes");
+                wiki_desc = single_page.Value.ToString().Replace(@"""", "'").Replace("<nowiki>{yes", "<nowiki>[yes");
 
-                if (wiki_desc.IndexOf("{{KeyDescription") >= 0)
+                if (wiki_desc.Contains("{{KeyDescription", StringComparison.CurrentCulture))
                 {
                     start_pos = wiki_desc.IndexOf("{{KeyDescription") + "{{KeyDescription".Length;
                     close_pos = ClosingBracket(wiki_desc, '{', '}', wiki_desc.IndexOf("{{KeyDescription"));
 
                     _parameters = wiki_desc.Substring(start_pos, close_pos - start_pos + 1);
                     start_pos = _parameters.IndexOf('|');
-                    parameters = _parameters.Substring(start_pos + 1).Split('|').ToList();
+                    parameters = _parameters[(start_pos + 1)..].Split('|').ToList();
 
-                    _pageData.Title = single_page.title.ToString().Replace(' ', '_');
+                    _pageData.Title = single_page.Title.ToString().Replace(' ', '_');
 
                     foreach (var param in parameters)
                     {
                         if (param.IndexOf('=') > 0)
                         {
-                            key = param.Substring(0, param.IndexOf('=')).Trim().ToLower();
-                            value = param.Substring(param.IndexOf('=') + 1).Trim().ToLower();
+                            key = param[..param.IndexOf('=')].Trim().ToLower();
+                            value = param[(param.IndexOf('=') + 1)..].Trim().ToLower();
 
                             // Value cleaning
                             value = value.Replace("}}", null).Replace("?", null);
-                            if (value.IndexOf('<') >= 0)
-                                value = value.Substring(0, value.IndexOf('<'));
-                            if (value.IndexOf((char)13) >= 0)
-                                value = value.Substring(0, value.IndexOf((char)13));
-                            if (value.IndexOf((char)10) >= 0)
-                                value = value.Substring(0, value.IndexOf((char)10));
+                            if (value.Contains('<'))
+                                value = value[..value.IndexOf('<')];
+                            if (value.Contains((char)13))
+                                value = value[..value.IndexOf((char)13)];
+                            if (value.Contains((char)10))
+                                value = value[..value.IndexOf((char)10)];
                             if (key == "status")
                                 value = value.Replace(" ", null);
                             value = value.Trim();
@@ -100,32 +100,32 @@ namespace deprecated_tags
                     pagedatas.Add(_pageData);
                 }
 
-                if (wiki_desc.IndexOf("{{ValueDescription") >= 0)
+                if (wiki_desc.Contains("{{ValueDescription", StringComparison.CurrentCulture))
                 {
                     start_pos = wiki_desc.IndexOf("{{ValueDescription") + "{{ValueDescription".Length;
                     close_pos = ClosingBracket(wiki_desc, '{', '}', wiki_desc.IndexOf("{{ValueDescription"));
 
                     _parameters = wiki_desc.Substring(start_pos, close_pos - start_pos + 1);
                     start_pos = _parameters.IndexOf('|');
-                    parameters = _parameters.Substring(start_pos + 1).Split('|').ToList();
+                    parameters = _parameters[(start_pos + 1)..].Split('|').ToList();
 
-                    _pageData.Title = single_page.title.ToString().Replace(' ', '_');
+                    _pageData.Title = single_page.Title.ToString().Replace(' ', '_');
 
                     foreach (var param in parameters)
                     {
                         if (param.IndexOf('=') > 0)
                         {
-                            key = param.Substring(0, param.IndexOf('=')).Trim().ToLower();
-                            value = param.Substring(param.IndexOf('=') + 1).Trim().ToLower();
+                            key = param[..param.IndexOf('=')].Trim().ToLower();
+                            value = param[(param.IndexOf('=') + 1)..].Trim().ToLower();
 
                             // Value cleaning
                             value = value.Replace("}}", null).Replace("?", null);
-                            if (value.IndexOf('<') >= 0)
-                                value = value.Substring(0, value.IndexOf('<'));
-                            if (value.IndexOf((char)13) >= 0)
-                                value = value.Substring(0, value.IndexOf((char)13));
-                            if (value.IndexOf((char)10) >= 0)
-                                value = value.Substring(0, value.IndexOf((char)10));
+                            if (value.Contains('<'))
+                                value = value[..value.IndexOf('<')];
+                            if (value.Contains((char)13))
+                                value = value[..value.IndexOf((char)13)];
+                            if (value.Contains((char)10))
+                                value = value[..value.IndexOf((char)10)];
                             if (key == "status")
                                 value = value.Replace(" ", null);
                             value = value.Trim();
@@ -152,30 +152,27 @@ namespace deprecated_tags
                 }
             }
 
-            using (StreamWriter file = new StreamWriter(@"wiki.deprecated-tags.validator.mapcss", false))
-            {
-                file.WriteLine("meta");
-                file.WriteLine("{");
-                file.WriteLine("    title: \"Generated Wiki validations for deprecated tags\";");
-                file.WriteLine("    version: \"" + DateTime.Today.ToShortDateString() + "\";");
-                file.WriteLine("    description: \"Checks for warnings based on Wiki articles\";");
-                file.WriteLine("    author: \"Szabo Gabor\";");
-                file.WriteLine("    watch - modified: true;");
-                file.WriteLine("    link: \"https://github.com/AlteredCarrot71/josm-rule-generator\";");
-                file.WriteLine("}");
-                file.WriteLine();
+            using StreamWriter file = new(@"wiki.deprecated-tags.validator.mapcss", false);
+            file.WriteLine("meta");
+            file.WriteLine("{");
+            file.WriteLine("    title: \"Generated Wiki validations for deprecated tags\";");
+            file.WriteLine("    version: \"" + DateTime.Today.ToShortDateString() + "\";");
+            file.WriteLine("    description: \"Checks for warnings based on Wiki articles\";");
+            file.WriteLine("    author: \"Szabo Gabor\";");
+            file.WriteLine("    watch - modified: true;");
+            file.WriteLine("    link: \"https://github.com/AlteredCarrot71/josm-rule-generator\";");
+            file.WriteLine("}");
+            file.WriteLine();
 
-                foreach (PageData record in pagedatas.Where(f => deprecatedStatus.Contains(f.Status) && !string.IsNullOrEmpty(f.Key)).SkipLast(1))
-                    file.WriteLine("*[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
-                foreach (PageData record in pagedatas.Where(f => deprecatedStatus.Contains(f.Status) && !string.IsNullOrEmpty(f.Key)).TakeLast(1))
-                    file.WriteLine("*[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
+            foreach (PageData record in pagedatas.Where(f => deprecatedStatus.Contains(f.Status) && !string.IsNullOrEmpty(f.Key)).SkipLast(1))
+                file.WriteLine("*[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
+            foreach (PageData record in pagedatas.Where(f => deprecatedStatus.Contains(f.Status) && !string.IsNullOrEmpty(f.Key)).TakeLast(1))
+                file.WriteLine("*[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
 
-                file.WriteLine("    throwWarning: tr(\"{0} is deprecated\", \"{0.tag}\");");
-                file.WriteLine("    group: \"deprecated tagging\";");
-                file.WriteLine("}");
-                file.WriteLine();
-            }
-
+            file.WriteLine("    throwWarning: tr(\"{0} is deprecated\", \"{0.tag}\");");
+            file.WriteLine("    group: \"deprecated tagging\";");
+            file.WriteLine("}");
+            file.WriteLine();
         }
 
         public static int ClosingBracket(string expression, char opening_bracket, char closing_bracket, int index)
@@ -190,13 +187,12 @@ namespace deprecated_tags
             }
 
             // Stack to store opening brackets.  
-            Stack st = new Stack();
+            Stack st = new();
 
             // Traverse through string starting from  
             // given index.  
             for (i = index; i < expression.Length; i++)
             {
-
                 // If current character is an  
                 // opening bracket push it in stack.  
                 if (expression[i] == opening_bracket)

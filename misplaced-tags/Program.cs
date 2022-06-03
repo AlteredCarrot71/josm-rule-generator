@@ -10,10 +10,10 @@ namespace misplaced_tags
 {
     class Program
     {
-        public Stopwatch stopWatch = new Stopwatch();
+        public Stopwatch stopWatch = new();
 
-        public List<Page> pages = new List<Page>();
-        public List<PageData> pagedatas = new List<PageData>();
+        public List<Page> pages = new();
+        public List<PageData> pagedatas = new();
 
         public int start_pos;
         public int close_pos;
@@ -26,9 +26,9 @@ namespace misplaced_tags
         public string key;
         public string value;
 
-        public List<string> validStatus = new List<string>() { "approved", "inuse", "defacto" };
+        public List<string> validStatus = new() { "approved", "inuse", "defacto" };
 
-        static void Main(string[] args)
+        static void Main()
         {
             var instance = new Program();
 
@@ -38,43 +38,43 @@ namespace misplaced_tags
         public void GenerateValidatorFile()
         {
             // Load XML data
-            XmlSerializer serializer = new XmlSerializer(typeof(List<Page>));
-            FileStream fs = new FileStream("pages.xml", FileMode.Open);
+            XmlSerializer serializer = new(typeof(List<Page>));
+            FileStream fs = new("pages.xml", FileMode.Open);
             pages = (List<Page>)serializer.Deserialize(fs);
 
             foreach (Page single_page in pages)
             {
-                PageData _pageData = new PageData();
+                PageData _pageData = new();
 
                 // Getting wiki text, with some bugfix
-                wiki_desc = single_page.value.ToString().Replace(@"""", "'").Replace("<nowiki>{yes", "<nowiki>[yes");
+                wiki_desc = single_page.Value.ToString().Replace(@"""", "'").Replace("<nowiki>{yes", "<nowiki>[yes");
 
-                if (wiki_desc.IndexOf("{{KeyDescription") >= 0)
+                if (wiki_desc.Contains("{{KeyDescription", StringComparison.CurrentCulture))
                 {
                     start_pos = wiki_desc.IndexOf("{{KeyDescription") + "{{KeyDescription".Length;
                     close_pos = ClosingBracket(wiki_desc, '{', '}', wiki_desc.IndexOf("{{KeyDescription"));
 
                     _parameters = wiki_desc.Substring(start_pos, close_pos - start_pos + 1);
                     start_pos = _parameters.IndexOf('|');
-                    parameters = _parameters.Substring(start_pos + 1).Split('|').ToList();
+                    parameters = _parameters[(start_pos + 1)..].Split('|').ToList();
 
-                    _pageData.Title = single_page.title.ToString().Replace(' ', '_');
+                    _pageData.Title = single_page.Title.ToString().Replace(' ', '_');
 
                     foreach (var param in parameters)
                     {
                         if (param.IndexOf('=') > 0)
                         {
-                            key = param.Substring(0, param.IndexOf('=')).Trim().ToLower();
-                            value = param.Substring(param.IndexOf('=') + 1).Trim().ToLower();
+                            key = param[..param.IndexOf('=')].Trim().ToLower();
+                            value = param[(param.IndexOf('=') + 1)..].Trim().ToLower();
 
                             // Value cleaning
                             value = value.Replace("}}", null).Replace("?", null);
-                            if (value.IndexOf('<') >= 0)
-                                value = value.Substring(0, value.IndexOf('<'));
-                            if (value.IndexOf((char)13) >= 0)
-                                value = value.Substring(0, value.IndexOf((char)13));
-                            if (value.IndexOf((char)10) >= 0)
-                                value = value.Substring(0, value.IndexOf((char)10));
+                            if (value.Contains('<'))
+                                value = value[..value.IndexOf('<')];
+                            if (value.Contains((char)13))
+                                value = value[..value.IndexOf((char)13)];
+                            if (value.Contains((char)10))
+                                value = value[..value.IndexOf((char)10)];
                             if (key == "status")
                                 value = value.Replace(" ", null);
                             value = value.Trim();
@@ -100,32 +100,32 @@ namespace misplaced_tags
                     pagedatas.Add(_pageData);
                 }
 
-                if (wiki_desc.IndexOf("{{ValueDescription") >= 0)
+                if (wiki_desc.Contains("{{ValueDescription", StringComparison.CurrentCulture))
                 {
                     start_pos = wiki_desc.IndexOf("{{ValueDescription") + "{{ValueDescription".Length;
                     close_pos = ClosingBracket(wiki_desc, '{', '}', wiki_desc.IndexOf("{{ValueDescription"));
 
                     _parameters = wiki_desc.Substring(start_pos, close_pos - start_pos + 1);
                     start_pos = _parameters.IndexOf('|');
-                    parameters = _parameters.Substring(start_pos + 1).Split('|').ToList();
+                    parameters = _parameters[(start_pos + 1)..].Split('|').ToList();
 
-                    _pageData.Title = single_page.title.ToString().Replace(' ', '_');
+                    _pageData.Title = single_page.Title.ToString().Replace(' ', '_');
 
                     foreach (var param in parameters)
                     {
                         if (param.IndexOf('=') > 0)
                         {
-                            key = param.Substring(0, param.IndexOf('=')).Trim().ToLower();
-                            value = param.Substring(param.IndexOf('=') + 1).Trim().ToLower();
+                            key = param[..param.IndexOf('=')].Trim().ToLower();
+                            value = param[(param.IndexOf('=') + 1)..].Trim().ToLower();
 
                             // Value cleaning
                             value = value.Replace("}}", null).Replace("?", null);
-                            if (value.IndexOf('<') >= 0)
-                                value = value.Substring(0, value.IndexOf('<'));
-                            if (value.IndexOf((char)13) >= 0)
-                                value = value.Substring(0, value.IndexOf((char)13));
-                            if (value.IndexOf((char)10) >= 0)
-                                value = value.Substring(0, value.IndexOf((char)10));
+                            if (value.Contains('<'))
+                                value = value[..value.IndexOf('<')];
+                            if (value.Contains((char)13))
+                                value = value[..value.IndexOf((char)13)];
+                            if (value.Contains((char)10))
+                                value = value[..value.IndexOf((char)10)];
                             if (key == "status")
                                 value = value.Replace(" ", null);
                             value = value.Trim();
@@ -154,181 +154,179 @@ namespace misplaced_tags
 
             pagedatas.RemoveAll(f => !validStatus.Contains(f.Status));
 
-            using (StreamWriter file = new StreamWriter(@"wiki.misplaced-tags.validator.mapcss", false))
+            using StreamWriter file = new(@"wiki.misplaced-tags.validator.mapcss", false);
+            file.WriteLine("meta");
+            file.WriteLine("{");
+            file.WriteLine("    title: \"Generated Wiki validations for misplaced tags\";");
+            file.WriteLine("    version: \"" + DateTime.Today.ToShortDateString() + "\";");
+            file.WriteLine("    description: \"Checks for warnings based on Wiki articles\";");
+            file.WriteLine("    author: \"Szabo Gabor\";");
+            file.WriteLine("    watch - modified: true;");
+            file.WriteLine("    link: \"https://github.com/AlteredCarrot71/josm-rule-generator\";");
+            file.WriteLine("}");
+            file.WriteLine();
+
+            #region Found on node ...
+            if (pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "yes" && f.OnRelation == "no").Any())
             {
-                file.WriteLine("meta");
-                file.WriteLine("{");
-                file.WriteLine("    title: \"Generated Wiki validations for misplaced tags\";");
-                file.WriteLine("    version: \"" + DateTime.Today.ToShortDateString() + "\";");
-                file.WriteLine("    description: \"Checks for warnings based on Wiki articles\";");
-                file.WriteLine("    author: \"Szabo Gabor\";");
-                file.WriteLine("    watch - modified: true;");
-                file.WriteLine("    link: \"https://github.com/AlteredCarrot71/josm-rule-generator\";");
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "yes" && f.OnRelation == "no").SkipLast(1))
+                    file.WriteLine("node[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "yes" && f.OnRelation == "no").TakeLast(1))
+                    file.WriteLine("node[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
+
+                file.WriteLine("    throwWarning: tr(\"{0} on a node. Should be used on a way.\", \"{0.tag}\");");
+                file.WriteLine("    group: \"Misplaced tagging\";");
                 file.WriteLine("}");
                 file.WriteLine();
-
-                #region Found on node ...
-                if (pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "yes" && f.OnRelation == "no").Count() > 0)
-                {
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "yes" && f.OnRelation == "no").SkipLast(1))
-                        file.WriteLine("node[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "yes" && f.OnRelation == "no").TakeLast(1))
-                        file.WriteLine("node[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
-
-                    file.WriteLine("    throwWarning: tr(\"{0} on a node. Should be used on a way.\", \"{0.tag}\");");
-                    file.WriteLine("    group: \"Misplaced tagging\";");
-                    file.WriteLine("}");
-                    file.WriteLine();
-                }
-
-                if (pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "no" && f.OnRelation == "yes").Count() > 0)
-                {
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "no" && f.OnRelation == "yes").SkipLast(1))
-                        file.WriteLine("node[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "no" && f.OnRelation == "yes").TakeLast(1))
-                        file.WriteLine("node[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
-
-                    file.WriteLine("    throwWarning: tr(\"{0} on a node. Should be used on a relation.\", \"{0.tag}\");");
-                    file.WriteLine("    group: \"Misplaced tagging\";");
-                    file.WriteLine("}");
-                    file.WriteLine();
-                }
-
-                if (pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "yes" && f.OnRelation == "yes").Count() > 0)
-                {
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "yes" && f.OnRelation == "yes").SkipLast(1))
-                        file.WriteLine("node[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "yes" && f.OnRelation == "yes").TakeLast(1))
-                        file.WriteLine("node[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
-
-                    file.WriteLine("    throwWarning: tr(\"{0} on a node. Should be used on a way or relation.\", \"{0.tag}\");");
-                    file.WriteLine("    group: \"Misplaced tagging\";");
-                    file.WriteLine("}");
-                    file.WriteLine();
-                }
-                #endregion
-
-                #region Found on way ...
-                if (pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "no" && f.OnArea == "yes").Count() > 0)
-                {
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "no" && f.OnArea == "yes").SkipLast(1))
-                        file.WriteLine("way!:closed[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "no" && f.OnArea == "yes").TakeLast(1))
-                        file.WriteLine("way!:closed[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
-
-                    file.WriteLine("    throwWarning: tr(\"{0} on a way. Should be used on a node.\", \"{0.tag}\");");
-                    file.WriteLine("    group: \"Misplaced tagging\";");
-                    file.WriteLine("}");
-                    file.WriteLine();
-                }
-
-                if (pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "no" && f.OnArea == "no").Count() > 0)
-                {
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "no" && f.OnArea == "no").SkipLast(1))
-                        file.WriteLine("way[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "no" && f.OnArea == "no").TakeLast(1))
-                        file.WriteLine("way[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
-
-                    file.WriteLine("    throwWarning: tr(\"{0} on a way. Should be used on a node.\", \"{0.tag}\");");
-                    file.WriteLine("    group: \"Misplaced tagging\";");
-                    file.WriteLine("}");
-                    file.WriteLine();
-                }
-
-                if (pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "yes").Count() > 0)
-                {
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "yes").SkipLast(1))
-                        file.WriteLine("way!:closed[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "yes").TakeLast(1))
-                        file.WriteLine("way!:closed[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
-
-                    file.WriteLine("    throwWarning: tr(\"{0} on a way. Should be used on a relation.\", \"{0.tag}\");");
-                    file.WriteLine("    group: \"Misplaced tagging\";");
-                    file.WriteLine("}");
-                    file.WriteLine();
-                }
-
-                if (pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "no").Count() > 0)
-                {
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "no").SkipLast(1))
-                        file.WriteLine("way[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "no").TakeLast(1))
-                        file.WriteLine("way[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
-
-                    file.WriteLine("    throwWarning: tr(\"{0} on a way. Should be used on a relation.\", \"{0.tag}\");");
-                    file.WriteLine("    group: \"Misplaced tagging\";");
-                    file.WriteLine("}");
-                    file.WriteLine();
-                }
-
-                if (pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "yes").Count() > 0)
-                {
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "yes").SkipLast(1))
-                        file.WriteLine("way!:closed[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "yes").TakeLast(1))
-                        file.WriteLine("way!:closed[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
-
-                    file.WriteLine("    throwWarning: tr(\"{0} on a way. Should be used on a node or relation.\", \"{0.tag}\");");
-                    file.WriteLine("    group: \"Misplaced tagging\";");
-                    file.WriteLine("}");
-                    file.WriteLine();
-                }
-
-                if (pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "no").Count() > 0)
-                {
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "no").SkipLast(1))
-                        file.WriteLine("way[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "no").TakeLast(1))
-                        file.WriteLine("way[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
-
-                    file.WriteLine("    throwWarning: tr(\"{0} on a way. Should be used on a node or relation.\", \"{0.tag}\");");
-                    file.WriteLine("    group: \"Misplaced tagging\";");
-                    file.WriteLine("}");
-                    file.WriteLine();
-                }
-                #endregion
-
-                #region Found on relation ...
-                if (pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "yes" && f.OnRelation == "no").Count() > 0)
-                {
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "yes" && f.OnRelation == "no").SkipLast(1))
-                        file.WriteLine("relation[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "yes" && f.OnRelation == "no").TakeLast(1))
-                        file.WriteLine("relation[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
-
-                    file.WriteLine("    throwWarning: tr(\"{0} on a relation. Should be used on a way.\", \"{0.tag}\");");
-                    file.WriteLine("    group: \"Misplaced tagging\";");
-                    file.WriteLine("}");
-                    file.WriteLine();
-                }
-
-                if (pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "no").Count() > 0)
-                {
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "no").SkipLast(1))
-                        file.WriteLine("relation[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "no").TakeLast(1))
-                        file.WriteLine("relation[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
-
-                    file.WriteLine("    throwWarning: tr(\"{0} on a relation. Should be used on a node.\", \"{0.tag}\");");
-                    file.WriteLine("    group: \"Misplaced tagging\";");
-                    file.WriteLine("}");
-                    file.WriteLine();
-                }
-
-                if (pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "yes" && f.OnRelation == "no").Count() > 0)
-                {
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "yes" && f.OnRelation == "no").SkipLast(1))
-                        file.WriteLine("relation[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
-                    foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "yes" && f.OnRelation == "no").TakeLast(1))
-                        file.WriteLine("relation[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
-
-                    file.WriteLine("    throwWarning: tr(\"{0} on a relation. Should be used on a node or way.\", \"{0.tag}\");");
-                    file.WriteLine("    group: \"Misplaced tagging\";");
-                    file.WriteLine("}");
-                    file.WriteLine();
-                }
-                #endregion
             }
+
+            if (pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "no" && f.OnRelation == "yes").Any())
+            {
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "no" && f.OnRelation == "yes").SkipLast(1))
+                    file.WriteLine("node[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "no" && f.OnRelation == "yes").TakeLast(1))
+                    file.WriteLine("node[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
+
+                file.WriteLine("    throwWarning: tr(\"{0} on a node. Should be used on a relation.\", \"{0.tag}\");");
+                file.WriteLine("    group: \"Misplaced tagging\";");
+                file.WriteLine("}");
+                file.WriteLine();
+            }
+
+            if (pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "yes" && f.OnRelation == "yes").Any())
+            {
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "yes" && f.OnRelation == "yes").SkipLast(1))
+                    file.WriteLine("node[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "yes" && f.OnRelation == "yes").TakeLast(1))
+                    file.WriteLine("node[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
+
+                file.WriteLine("    throwWarning: tr(\"{0} on a node. Should be used on a way or relation.\", \"{0.tag}\");");
+                file.WriteLine("    group: \"Misplaced tagging\";");
+                file.WriteLine("}");
+                file.WriteLine();
+            }
+            #endregion
+
+            #region Found on way ...
+            if (pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "no" && f.OnArea == "yes").Any())
+            {
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "no" && f.OnArea == "yes").SkipLast(1))
+                    file.WriteLine("way!:closed[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "no" && f.OnArea == "yes").TakeLast(1))
+                    file.WriteLine("way!:closed[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
+
+                file.WriteLine("    throwWarning: tr(\"{0} on a way. Should be used on a node.\", \"{0.tag}\");");
+                file.WriteLine("    group: \"Misplaced tagging\";");
+                file.WriteLine("}");
+                file.WriteLine();
+            }
+
+            if (pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "no" && f.OnArea == "no").Any())
+            {
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "no" && f.OnArea == "no").SkipLast(1))
+                    file.WriteLine("way[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "no" && f.OnArea == "no").TakeLast(1))
+                    file.WriteLine("way[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
+
+                file.WriteLine("    throwWarning: tr(\"{0} on a way. Should be used on a node.\", \"{0.tag}\");");
+                file.WriteLine("    group: \"Misplaced tagging\";");
+                file.WriteLine("}");
+                file.WriteLine();
+            }
+
+            if (pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "yes").Any())
+            {
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "yes").SkipLast(1))
+                    file.WriteLine("way!:closed[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "yes").TakeLast(1))
+                    file.WriteLine("way!:closed[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
+
+                file.WriteLine("    throwWarning: tr(\"{0} on a way. Should be used on a relation.\", \"{0.tag}\");");
+                file.WriteLine("    group: \"Misplaced tagging\";");
+                file.WriteLine("}");
+                file.WriteLine();
+            }
+
+            if (pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "no").Any())
+            {
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "no").SkipLast(1))
+                    file.WriteLine("way[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "no").TakeLast(1))
+                    file.WriteLine("way[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
+
+                file.WriteLine("    throwWarning: tr(\"{0} on a way. Should be used on a relation.\", \"{0.tag}\");");
+                file.WriteLine("    group: \"Misplaced tagging\";");
+                file.WriteLine("}");
+                file.WriteLine();
+            }
+
+            if (pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "yes").Any())
+            {
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "yes").SkipLast(1))
+                    file.WriteLine("way!:closed[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "yes").TakeLast(1))
+                    file.WriteLine("way!:closed[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
+
+                file.WriteLine("    throwWarning: tr(\"{0} on a way. Should be used on a node or relation.\", \"{0.tag}\");");
+                file.WriteLine("    group: \"Misplaced tagging\";");
+                file.WriteLine("}");
+                file.WriteLine();
+            }
+
+            if (pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "no").Any())
+            {
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "no").SkipLast(1))
+                    file.WriteLine("way[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "yes" && f.OnArea == "no").TakeLast(1))
+                    file.WriteLine("way[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
+
+                file.WriteLine("    throwWarning: tr(\"{0} on a way. Should be used on a node or relation.\", \"{0.tag}\");");
+                file.WriteLine("    group: \"Misplaced tagging\";");
+                file.WriteLine("}");
+                file.WriteLine();
+            }
+            #endregion
+
+            #region Found on relation ...
+            if (pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "yes" && f.OnRelation == "no").Any())
+            {
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "yes" && f.OnRelation == "no").SkipLast(1))
+                    file.WriteLine("relation[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "no" && f.OnWay == "yes" && f.OnRelation == "no").TakeLast(1))
+                    file.WriteLine("relation[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
+
+                file.WriteLine("    throwWarning: tr(\"{0} on a relation. Should be used on a way.\", \"{0.tag}\");");
+                file.WriteLine("    group: \"Misplaced tagging\";");
+                file.WriteLine("}");
+                file.WriteLine();
+            }
+
+            if (pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "no").Any())
+            {
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "no").SkipLast(1))
+                    file.WriteLine("relation[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "no" && f.OnRelation == "no").TakeLast(1))
+                    file.WriteLine("relation[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
+
+                file.WriteLine("    throwWarning: tr(\"{0} on a relation. Should be used on a node.\", \"{0.tag}\");");
+                file.WriteLine("    group: \"Misplaced tagging\";");
+                file.WriteLine("}");
+                file.WriteLine();
+            }
+
+            if (pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "yes" && f.OnRelation == "no").Any())
+            {
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "yes" && f.OnRelation == "no").SkipLast(1))
+                    file.WriteLine("relation[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "],");
+                foreach (PageData record in pagedatas.Where(f => f.OnNode == "yes" && f.OnWay == "yes" && f.OnRelation == "no").TakeLast(1))
+                    file.WriteLine("relation[\"" + record.Key + "\"" + (string.IsNullOrEmpty(record.Value) ? "" : ("=\"" + record.Value + "\"")) + "] {");
+
+                file.WriteLine("    throwWarning: tr(\"{0} on a relation. Should be used on a node or way.\", \"{0.tag}\");");
+                file.WriteLine("    group: \"Misplaced tagging\";");
+                file.WriteLine("}");
+                file.WriteLine();
+            }
+            #endregion
         }
         
         public static int ClosingBracket(string expression, char opening_bracket, char closing_bracket, int index)
@@ -343,13 +341,12 @@ namespace misplaced_tags
             }
 
             // Stack to store opening brackets.  
-            Stack st = new Stack();
+            Stack st = new();
 
             // Traverse through string starting from  
             // given index.  
             for (i = index; i < expression.Length; i++)
             {
-
                 // If current character is an  
                 // opening bracket push it in stack.  
                 if (expression[i] == opening_bracket)

@@ -9,12 +9,13 @@ namespace josm_rule_generator
 {
     class Program
     {
-        public Stopwatch stopWatch = new Stopwatch();
+        public Stopwatch stopWatch = new();
 
-        public List<string> title_list = new List<string>();
-        public List<Page> pages = new List<Page>();
+        public List<string> title_list = new();
+        public List<string> categories = new();
+        public List<Page> pages = new();
 
-        static void Main(string[] args)
+        static void Main()
         {
             var instance = new Program();
 
@@ -32,7 +33,7 @@ namespace josm_rule_generator
                 stopWatch.Start();
 
                 //Serialization
-                System.Xml.Serialization.XmlSerializer writer = new System.Xml.Serialization.XmlSerializer(typeof(List<Page>));
+                System.Xml.Serialization.XmlSerializer writer = new(typeof(List<Page>));
 
                 System.IO.FileStream file = System.IO.File.Create("pages.xml");
 
@@ -57,6 +58,7 @@ namespace josm_rule_generator
                 stopWatch.Reset();
                 stopWatch.Start();
 
+                categories.Add(CategoryLabel);
                 GetCategoryContent(CategoryLabel);
 
                 stopWatch.Stop();
@@ -90,11 +92,12 @@ namespace josm_rule_generator
 
         public void GetCategoryContent(string CategoryLabel)
         {
-            RestClient _client = new RestClient();
+            RestClient _client = new()
+            {
+                BaseUrl = new Uri("https://wiki.openstreetmap.org/w/")
+            };
 
-            _client.BaseUrl = new Uri("https://wiki.openstreetmap.org/w/");
-
-            RestRequest request = new RestRequest("api.php", Method.GET);
+            RestRequest request = new("api.php", Method.GET);
 
             request.AddParameter("action", "query");
             request.AddParameter("format", "xml");
@@ -114,10 +117,20 @@ namespace josm_rule_generator
                 if (element.Attribute("type") != null && element.Attribute("title") != null)
                     if (element.Attribute("type").Value == "page")
                         if (!(title_list.Contains(element.Attribute("title").Value)))
+                        {
                             title_list.Add(element.Attribute("title").Value);
+                            Console.WriteLine(element.Attribute("title").Value + " added.");
+                        }
                 if (element.Attribute("type") != null && element.Attribute("title") != null)
-                    if (element.Attribute("type").Value == "subcat")
-                        GetCategoryContent(element.Attribute("title").Value);
+                    if (element.Attribute("type").Value == "subcat" && element.Attribute("title").Value != CategoryLabel)
+                    {
+                        if (!(categories.Contains(element.Attribute("title").Value)))
+                        {
+                            Console.WriteLine("Gathering " + element.Attribute("title").Value);
+                            categories.Add(element.Attribute("title").Value);
+                            GetCategoryContent(element.Attribute("title").Value);
+                        }
+                    }
             }
 
             _client.ClearHandlers();
@@ -125,11 +138,12 @@ namespace josm_rule_generator
 
         public void GetPageContent(string Title)
         {
-            RestClient _client = new RestClient();
+            RestClient _client = new()
+            {
+                BaseUrl = new Uri("https://wiki.openstreetmap.org/w/")
+            };
 
-            _client.BaseUrl = new Uri("https://wiki.openstreetmap.org/w/");
-
-            RestRequest request = new RestRequest("api.php", Method.GET);
+            RestRequest request = new("api.php", Method.GET);
 
             request.AddParameter("action", "query");
             request.AddParameter("format", "xml");
@@ -145,7 +159,10 @@ namespace josm_rule_generator
 
             foreach (XElement element in _xDoc.Descendants())
                 if (element.Name.LocalName == "slot")
-                    pages.Add(new Page { title = Title, value = element.Value });
+                {
+                    pages.Add(new Page { Title = Title, Value = element.Value });
+                    Console.WriteLine(Title + " gathered.");
+                }
 
             _client.ClearHandlers();
         }

@@ -2,7 +2,7 @@
 {
     public class Page
     {
-        public string title { get; set; }
-        public string value { get; set; }
+        public string Title { get; set; }
+        public string Value { get; set; }
     }
 }
